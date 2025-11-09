@@ -161,11 +161,13 @@ st.sidebar.caption("Tip: Use Yahoo tickers ending with .NS for NSE stocks (e.g.,
 # Fetch Prices
 # -------------------------------------------------
 def fetch_prices(ticker, start, end):
-    df = yf.download(ticker, start=start, end=end)
+    # Add one day so the selected end date is included
+    df = yf.download(ticker, start=start, end=end + timedelta(days=1))
     if df is None or df.empty:
         return pd.DataFrame()
     df = df.rename(columns=str.title)
     return df
+
 
 # -------------------------------------------------
 # Build Signals (SMA / EMA / WMA)
