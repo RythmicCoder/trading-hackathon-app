@@ -65,16 +65,19 @@ if theme_choice == "Dark Mode":
 else:
     st.markdown("""
         <style>
+            /* App + sidebar base */
             .stApp {
                 background-color: #f4f6f8;
                 color: #1e293b;
-                font-family: "Inter", sans-serif;
+                font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
             }
             section[data-testid="stSidebar"] {
                 background-color: #ffffff;
                 color: #1e293b;
                 border-right: 1px solid #e2e8f0;
             }
+
+            /* Headings */
             h1 {
                 color: #005f99 !important;
                 text-align: center;
@@ -82,32 +85,52 @@ else:
                 letter-spacing: 0.5px;
                 margin-bottom: 1rem;
             }
-            div[data-testid="stMetricValue"] {
-                color: #0077b6 !important;
-                font-weight: 600;
+
+            /* Ensure ALL widget labels are dark */
+            [data-testid="stWidgetLabel"], label, .stRadio label, .stSelectbox label,
+            .stMultiSelect label, .stDateInput label, .stNumberInput label {
+                color: #1e293b !important;
             }
+
+            /* Inputs: text/number/date/select backgrounds to white, text dark */
+            [data-testid="stNumberInput"] input,
+            [data-testid="stDateInputInput"],
+            div[data-baseweb="select"] > div,
+            input, textarea, select {
+                background-color: #ffffff !important;
+                color: #111827 !important;
+                border: 1px solid #d1d5db !important;
+                border-radius: 6px !important;
+            }
+            /* Select tokens/pills (for multiselect) */
+            div[data-baseweb="tag"] {
+                background-color: #e7eef4 !important;
+                color: #111827 !important;
+            }
+            /* Placeholder text color */
+            ::placeholder { color: #6b7280 !important; }
+
+            /* Metrics + buttons */
+            div[data-testid="stMetricValue"] { color: #0077b6 !important; font-weight: 600; }
             button[kind="primary"] {
                 background-color: #0077b6 !important;
-                color: white !important;
+                color: #ffffff !important;
                 border-radius: 6px;
                 font-weight: 500;
                 border: none;
-                box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
-                transition: all 0.3s ease;
+                box-shadow: 0 2px 6px rgba(0,0,0,.08);
+                transition: all .2s ease;
             }
-            button[kind="primary"]:hover {
-                background-color: #005f99 !important;
-                transform: translateY(-1px);
-            }
+            button[kind="primary"]:hover { background-color: #005f99 !important; }
+
+            /* Tables + tabs */
             div[data-testid="stDataFrame"] {
                 background-color: #ffffff;
                 border-radius: 10px;
                 border: 1px solid #e2e8f0;
                 color: #1e293b;
             }
-            .stTabs [role="tablist"] {
-                gap: 8px;
-            }
+            .stTabs [role="tablist"] { gap: 8px; }
             .stTabs [role="tab"] {
                 background-color: #e7eef4;
                 border-radius: 6px;
@@ -117,10 +140,11 @@ else:
             }
             .stTabs [role="tab"][aria-selected="true"] {
                 background-color: #0077b6;
-                color: white;
+                color: #ffffff;
             }
         </style>
     """, unsafe_allow_html=True)
+
 
 
 # -------------------------------------------------
