@@ -163,19 +163,18 @@ start_date = end_date - timedelta(days=90)
 start = st.sidebar.date_input("Start Date", start_date)
 end = st.sidebar.date_input("End Date", end_date)
 
-short_win = st.sidebar.number_input("Short SMA Window", min_value=3, max_value=50, value=10, step=1)
-long_win = st.sidebar.number_input("Long SMA Window", min_value=10, max_value=200, value=30, step=1)
+ma_type = st.sidebar.selectbox("Moving Average Type", ["SMA", "EMA", "WMA"])
+short_win = st.sidebar.number_input("Short MA Window", min_value=3, max_value=50, value=10, step=1)
+long_win = st.sidebar.number_input("Long MA Window", min_value=10, max_value=200, value=30, step=1)
 tx_cost_bps = st.sidebar.number_input("Transaction Cost (bps per trade)", min_value=0, max_value=100, value=5, step=1)
-
 take_profit = st.sidebar.number_input("Take Profit (%)", min_value=0.0, max_value=50.0, value=5.0, step=0.5)
 stop_loss = st.sidebar.number_input("Stop Loss (%)", min_value=0.0, max_value=50.0, value=3.0, step=0.5)
 
 st.sidebar.caption("Tip: Use Yahoo tickers ending with .NS for NSE stocks (e.g., TCS.NS)")
 
 # -------------------------------------------------
-# Fetch Prices (Cached)
+# Fetch Prices
 # -------------------------------------------------
-@st.cache_data(show_spinner=True)
 def fetch_prices(ticker, start, end):
     df = yf.download(ticker, start=start, end=end)
     if df is None or df.empty:
@@ -184,15 +183,25 @@ def fetch_prices(ticker, start, end):
     return df
 
 # -------------------------------------------------
-# Build Signals
+# Build Signals (SMA / EMA / WMA)
 # -------------------------------------------------
-def build_signals(prices, s_win, l_win):
+def build_signals(prices, s_win, l_win, ma_type="SMA"):
     df = prices.copy()
-    df["SMA_Short"] = df["Close"].rolling(s_win).mean()
-    df["SMA_Long"] = df["Close"].rolling(l_win).mean()
+    if ma_type == "SMA":
+        df["MA_Short"] = df["Close"].rolling(s_win).mean()
+        df["MA_Long"] = df["Close"].rolling(l_win).mean()
+    elif ma_type == "EMA":
+        df["MA_Short"] = df["Close"].ewm(span=s_win, adjust=False).mean()
+        df["MA_Long"] = df["Close"].ewm(span=l_win, adjust=False).mean()
+    else:  # WMA
+        weights_short = np.arange(1, s_win + 1)
+        weights_long = np.arange(1, l_win + 1)
+        df["MA_Short"] = df["Close"].rolling(s_win).apply(lambda x: np.dot(x, weights_short)/weights_short.sum(), raw=True)
+        df["MA_Long"] = df["Close"].rolling(l_win).apply(lambda x: np.dot(x, weights_long)/weights_long.sum(), raw=True)
+
     df["Signal"] = 0
-    df.loc[df["SMA_Short"] > df["SMA_Long"], "Signal"] = 1
-    df.loc[df["SMA_Short"] < df["SMA_Long"], "Signal"] = -1
+    df.loc[df["MA_Short"] > df["MA_Long"], "Signal"] = 1
+    df.loc[df["MA_Short"] < df["MA_Long"], "Signal"] = -1
     return df
 
 # -------------------------------------------------
@@ -209,21 +218,19 @@ def backtest(df, tx_cost_bps=5, take_profit=0.05, stop_loss=-0.03):
     entry_price = None
 
     for i in range(1, len(df)):
-        short_val = df["SMA_Short"].iloc[i]
-        long_val = df["SMA_Long"].iloc[i]
-        if pd.isna(short_val) or pd.isna(long_val):
+        short = df["MA_Short"].iloc[i]
+        long = df["MA_Long"].iloc[i]
+        price = df["Close"].iloc[i]
+
+        if np.isnan(short) or np.isnan(long):
             continue
 
-        short = float(short_val)
-        long = float(long_val)
-        price = float(df["Close"].iloc[i])
-
-        # Entry: Bullish crossover
+        # Entry: bullish crossover
         if position == 0 and short > long:
             position = 1
             entry_price = price
 
-        # Exit: Bearish crossover or take-profit/stop-loss
+        # Exit: bearish crossover or take-profit/stop-loss
         elif position == 1 and entry_price is not None:
             change = (price - entry_price) / entry_price
             if (short < long) or (change >= take_profit) or (change <= stop_loss):
@@ -232,6 +239,7 @@ def backtest(df, tx_cost_bps=5, take_profit=0.05, stop_loss=-0.03):
 
         df.at[df.index[i], "Position"] = position
 
+    # Compute returns
     df["Trade"] = df["Position"].diff().abs().fillna(0)
     tx_cost = (tx_cost_bps / 10000.0) * df["Trade"]
     df["StratRet"] = df["Position"].shift(1).fillna(0) * df["Return"] - tx_cost
@@ -242,7 +250,7 @@ def backtest(df, tx_cost_bps=5, take_profit=0.05, stop_loss=-0.03):
     return df, total_pl
 
 # -------------------------------------------------
-# Run Backtest
+# Run Backtest Button
 # -------------------------------------------------
 if st.sidebar.button("Run Backtest"):
     if not tickers:
@@ -256,7 +264,7 @@ if st.sidebar.button("Run Backtest"):
                     st.error(f"No data for {t}. Try another ticker or different dates.")
                     continue
 
-                df = build_signals(prices, short_win, long_win)
+                df = build_signals(prices, short_win, long_win, ma_type)
                 bt, pl = backtest(
                     df,
                     tx_cost_bps=tx_cost_bps,
@@ -264,19 +272,19 @@ if st.sidebar.button("Run Backtest"):
                     stop_loss=-(stop_loss / 100)
                 )
 
-                st.subheader(f"{t} Results")
+                st.subheader(f"{t} Results — {ma_type} Crossover")
                 st.metric("Total P/L (fractional)", f"{pl:.2%}")
 
-                # Price + SMAs
+                # --- Chart 1: Price + MAs ---
                 fig1, ax1 = plt.subplots()
-                ax1.plot(bt.index, bt["Close"], label="Close")
-                ax1.plot(bt.index, bt["SMA_Short"], label=f"SMA {short_win}")
-                ax1.plot(bt.index, bt["SMA_Long"], label=f"SMA {long_win}")
-                ax1.set_title(f"{t} Price with SMAs")
+                ax1.plot(bt.index, bt["Close"], label="Close", linewidth=1.2)
+                ax1.plot(bt.index, bt["MA_Short"], label=f"{ma_type} {short_win}", linewidth=1.1)
+                ax1.plot(bt.index, bt["MA_Long"], label=f"{ma_type} {long_win}", linewidth=1.1)
+                ax1.set_title(f"{t} Price with {ma_type}s")
                 ax1.legend()
                 st.pyplot(fig1)
 
-                # Equity Curves
+                # --- Chart 2: Cumulative Returns ---
                 fig2, ax2 = plt.subplots()
                 ax2.plot(bt.index, bt["CumStock"], label="Buy & Hold")
                 ax2.plot(bt.index, bt["CumStrat"], label="Strategy")
@@ -284,17 +292,17 @@ if st.sidebar.button("Run Backtest"):
                 ax2.legend()
                 st.pyplot(fig2)
 
+                # --- Data Table + Download CSV ---
                 st.dataframe(bt[[
-                    "Close", "SMA_Short", "SMA_Long", "Signal",
+                    "Close", "MA_Short", "MA_Long", "Signal",
                     "Position", "Return", "StratRet", "CumStock", "CumStrat"
                 ]].tail(20))
 
-                # Download CSV Button
                 csv_data = bt.to_csv(index=True).encode("utf-8")
                 st.download_button(
-                    label=f"Download {t} Data (CSV)",
+                    label=f"Download {t} Backtest Data as CSV",
                     data=csv_data,
-                    file_name=f"{t}_backtest_results.csv",
+                    file_name=f"{t}_{ma_type}_backtest.csv",
                     mime="text/csv"
                 )
 else:
