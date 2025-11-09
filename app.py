@@ -6,10 +6,58 @@ import matplotlib.pyplot as plt
 from datetime import date, timedelta
 
 # -------------------------------------------------
-# Streamlit Page Setup
+# Page Setup and Custom Theme
 # -------------------------------------------------
-st.set_page_config(page_title="Trading Strategy Demo", layout="wide")
-st.title("Trading Strategy Demo")
+st.set_page_config(page_title="Trading Strategy Dashboard", layout="wide")
+
+# --- Inject Custom CSS for Styling ---
+st.markdown("""
+    <style>
+        /* Background gradient */
+        .stApp {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #f8f9fa;
+        }
+
+        /* Sidebar styling */
+        section[data-testid="stSidebar"] {
+            background-color: #111827;
+            color: #f8f9fa;
+        }
+
+        /* Title */
+        h1 {
+            color: #00b4d8 !important;
+            text-align: center;
+        }
+
+        /* Metric cards */
+        div[data-testid="stMetricValue"] {
+            color: #38bdf8 !important;
+        }
+
+        /* Buttons */
+        button[kind="primary"] {
+            background-color: #00b4d8 !important;
+            color: white !important;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        button[kind="primary"]:hover {
+            background-color: #0077b6 !important;
+            color: #fff !important;
+        }
+
+        /* DataFrame table */
+        div[data-testid="stDataFrame"] {
+            background-color: #1e293b;
+            border-radius: 8px;
+            color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("💹 Trading Strategy Dashboard")
 
 # -------------------------------------------------
 # Sidebar Inputs
@@ -28,15 +76,15 @@ short_win = st.sidebar.number_input("Short SMA window", min_value=3, max_value=5
 long_win = st.sidebar.number_input("Long SMA window", min_value=10, max_value=200, value=30, step=1)
 tx_cost_bps = st.sidebar.number_input("Transaction cost (bps per trade)", min_value=0, max_value=100, value=5, step=1)
 
-# Add exit rule inputs
 take_profit = st.sidebar.number_input("Take Profit (%)", min_value=0.0, max_value=50.0, value=5.0, step=0.5)
 stop_loss = st.sidebar.number_input("Stop Loss (%)", min_value=0.0, max_value=50.0, value=3.0, step=0.5)
 
-st.sidebar.caption("Tips: NSE tickers on Yahoo Finance end with .NS, e.g., TCS.NS")
+st.sidebar.caption("Tips: NSE tickers on Yahoo Finance end with .NS (e.g., TCS.NS)")
 
 # -------------------------------------------------
-# Fetch Prices
+# Fetch Prices (Cached)
 # -------------------------------------------------
+@st.cache_data(show_spinner=True)
 def fetch_prices(ticker, start, end):
     df = yf.download(ticker, start=start, end=end)
     if df is None or df.empty:
@@ -70,13 +118,15 @@ def backtest(df, tx_cost_bps=5, take_profit=0.05, stop_loss=-0.03):
     entry_price = None
 
     for i in range(1, len(df)):
-        short = float(df["SMA_Short"].iloc[i]) if not pd.isna(df["SMA_Short"].iloc[i]) else np.nan
-        long = float(df["SMA_Long"].iloc[i]) if not pd.isna(df["SMA_Long"].iloc[i]) else np.nan
-        price = float(df["Close"].iloc[i])
+        short_val = df["SMA_Short"].iloc[i]
+        long_val = df["SMA_Long"].iloc[i]
 
-        # Skip NaN values in moving averages
-        if np.isnan(short) or np.isnan(long):
+        if pd.isna(short_val) or pd.isna(long_val):
             continue
+
+        short = float(short_val)
+        long = float(long_val)
+        price = float(df["Close"].iloc[i])
 
         # Entry: Bullish crossover
         if position == 0 and short > long:
@@ -92,7 +142,6 @@ def backtest(df, tx_cost_bps=5, take_profit=0.05, stop_loss=-0.03):
 
         df.at[df.index[i], "Position"] = position
 
-    # Compute returns
     df["Trade"] = df["Position"].diff().abs().fillna(0)
     tx_cost = (tx_cost_bps / 10000.0) * df["Trade"]
     df["StratRet"] = df["Position"].shift(1).fillna(0) * df["Return"] - tx_cost
@@ -103,7 +152,7 @@ def backtest(df, tx_cost_bps=5, take_profit=0.05, stop_loss=-0.03):
     return df, total_pl
 
 # -------------------------------------------------
-# Run Backtest Button
+# Run Backtest
 # -------------------------------------------------
 if st.sidebar.button("Run Backtest"):
     if not tickers:
@@ -149,5 +198,14 @@ if st.sidebar.button("Run Backtest"):
                     "Close", "SMA_Short", "SMA_Long", "Signal",
                     "Position", "Return", "StratRet", "CumStock", "CumStrat"
                 ]].tail(20))
+
+                # Download CSV Button
+                csv_data = bt.to_csv(index=True).encode("utf-8")
+                st.download_button(
+                    label=f"📥 Download {t} Backtest Data as CSV",
+                    data=csv_data,
+                    file_name=f"{t}_backtest_results.csv",
+                    mime="text/csv"
+                )
 else:
     st.info("Set your inputs in the sidebar and click 'Run Backtest'.")
