@@ -65,7 +65,6 @@ if theme_choice == "Dark Mode":
 else:
     st.markdown("""
         <style>
-            /* App + sidebar base */
             .stApp {
                 background-color: #f4f6f8;
                 color: #1e293b;
@@ -76,8 +75,6 @@ else:
                 color: #1e293b;
                 border-right: 1px solid #e2e8f0;
             }
-
-            /* Headings */
             h1 {
                 color: #005f99 !important;
                 text-align: center;
@@ -85,14 +82,10 @@ else:
                 letter-spacing: 0.5px;
                 margin-bottom: 1rem;
             }
-
-            /* Ensure ALL widget labels are dark */
             [data-testid="stWidgetLabel"], label, .stRadio label, .stSelectbox label,
             .stMultiSelect label, .stDateInput label, .stNumberInput label {
                 color: #1e293b !important;
             }
-
-            /* Inputs: text/number/date/select backgrounds to white, text dark */
             [data-testid="stNumberInput"] input,
             [data-testid="stDateInputInput"],
             div[data-baseweb="select"] > div,
@@ -102,15 +95,11 @@ else:
                 border: 1px solid #d1d5db !important;
                 border-radius: 6px !important;
             }
-            /* Select tokens/pills (for multiselect) */
             div[data-baseweb="tag"] {
                 background-color: #e7eef4 !important;
                 color: #111827 !important;
             }
-            /* Placeholder text color */
             ::placeholder { color: #6b7280 !important; }
-
-            /* Metrics + buttons */
             div[data-testid="stMetricValue"] { color: #0077b6 !important; font-weight: 600; }
             button[kind="primary"] {
                 background-color: #0077b6 !important;
@@ -122,8 +111,6 @@ else:
                 transition: all .2s ease;
             }
             button[kind="primary"]:hover { background-color: #005f99 !important; }
-
-            /* Tables + tabs */
             div[data-testid="stDataFrame"] {
                 background-color: #ffffff;
                 border-radius: 10px;
@@ -144,8 +131,6 @@ else:
             }
         </style>
     """, unsafe_allow_html=True)
-
-
 
 # -------------------------------------------------
 # Title
@@ -207,7 +192,34 @@ def build_signals(prices, s_win, l_win, ma_type="SMA"):
 # -------------------------------------------------
 # Backtest Logic with Exit Rule
 # -------------------------------------------------
-n = 0
+def backtest(df, tx_cost_bps=5, take_profit=0.05, stop_loss=-0.03):
+    if df.empty or "Signal" not in df.columns:
+        return df, 0.0
+
+    df = df.copy()
+    df["Return"] = df["Close"].pct_change().fillna(0)
+    df["Position"] = 0
+    position = 0
+    entry_price = None
+
+    for i in range(1, len(df)):
+        short = float(df["MA_Short"].iloc[i]) if not pd.isna(df["MA_Short"].iloc[i]) else np.nan
+        long = float(df["MA_Long"].iloc[i]) if not pd.isna(df["MA_Long"].iloc[i]) else np.nan
+        price = float(df["Close"].iloc[i])
+
+        if np.isnan(short) or np.isnan(long):
+            continue
+
+        # Entry: bullish crossover
+        if position == 0 and short > long:
+            position = 1
+            entry_price = price
+
+        # Exit: bearish crossover or take-profit/stop-loss
+        elif position == 1 and entry_price is not None:
+            change = (price - entry_price) / entry_price
+            if (short < long) or (change >= take_profit) or (change <= stop_loss):
+                position = 0
                 entry_price = None
 
         df.at[df.index[i], "Position"] = position
@@ -248,7 +260,6 @@ if st.sidebar.button("Run Backtest"):
                 st.subheader(f"{t} Results — {ma_type} Crossover")
                 st.metric("Total P/L (fractional)", f"{pl:.2%}")
 
-                # --- Chart 1: Price + MAs ---
                 fig1, ax1 = plt.subplots()
                 ax1.plot(bt.index, bt["Close"], label="Close", linewidth=1.2)
                 ax1.plot(bt.index, bt["MA_Short"], label=f"{ma_type} {short_win}", linewidth=1.1)
@@ -257,7 +268,6 @@ if st.sidebar.button("Run Backtest"):
                 ax1.legend()
                 st.pyplot(fig1)
 
-                # --- Chart 2: Cumulative Returns ---
                 fig2, ax2 = plt.subplots()
                 ax2.plot(bt.index, bt["CumStock"], label="Buy & Hold")
                 ax2.plot(bt.index, bt["CumStrat"], label="Strategy")
@@ -265,7 +275,6 @@ if st.sidebar.button("Run Backtest"):
                 ax2.legend()
                 st.pyplot(fig2)
 
-                # --- Data Table + Download CSV ---
                 st.dataframe(bt[[
                     "Close", "MA_Short", "MA_Long", "Signal",
                     "Position", "Return", "StratRet", "CumStock", "CumStrat"
