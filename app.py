@@ -207,34 +207,7 @@ def build_signals(prices, s_win, l_win, ma_type="SMA"):
 # -------------------------------------------------
 # Backtest Logic with Exit Rule
 # -------------------------------------------------
-def backtest(df, tx_cost_bps=5, take_profit=0.05, stop_loss=-0.03):
-    if df.empty or "Signal" not in df.columns:
-        return df, 0.0
-
-    df = df.copy()
-    df["Return"] = df["Close"].pct_change().fillna(0)
-    df["Position"] = 0
-    position = 0
-    entry_price = None
-
-    for i in range(1, len(df)):
-        short = df["MA_Short"].iloc[i]
-        long = df["MA_Long"].iloc[i]
-        price = df["Close"].iloc[i]
-
-        if np.isnan(short) or np.isnan(long):
-            continue
-
-        # Entry: bullish crossover
-        if position == 0 and short > long:
-            position = 1
-            entry_price = price
-
-        # Exit: bearish crossover or take-profit/stop-loss
-        elif position == 1 and entry_price is not None:
-            change = (price - entry_price) / entry_price
-            if (short < long) or (change >= take_profit) or (change <= stop_loss):
-                position = 0
+n = 0
                 entry_price = None
 
         df.at[df.index[i], "Position"] = position
