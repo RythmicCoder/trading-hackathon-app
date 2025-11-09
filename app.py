@@ -161,13 +161,11 @@ st.sidebar.caption("Tip: Use Yahoo tickers ending with .NS for NSE stocks (e.g.,
 # Fetch Prices
 # -------------------------------------------------
 def fetch_prices(ticker, start, end):
-    # Add one day so the selected end date is included
     df = yf.download(ticker, start=start, end=end + timedelta(days=1))
     if df is None or df.empty:
         return pd.DataFrame()
     df = df.rename(columns=str.title)
     return df
-
 
 # -------------------------------------------------
 # Build Signals (SMA / EMA / WMA)
@@ -262,14 +260,34 @@ if st.sidebar.button("Run Backtest"):
                 st.subheader(f"{t} Results — {ma_type} Crossover")
                 st.metric("Total P/L (fractional)", f"{pl:.2%}")
 
+                # --- Current Signal Recommendation ---
+                latest_signal = int(bt["Signal"].iloc[-1])
+                if latest_signal == 1:
+                    st.success("📈 Recommendation: BUY — Bullish crossover detected.")
+                elif latest_signal == -1:
+                    st.error("📉 Recommendation: SELL — Bearish crossover detected.")
+                else:
+                    st.info("⚖️ Recommendation: HOLD — No clear signal right now.")
+
+                # --- Chart 1: Price + MAs + Signal Marker ---
                 fig1, ax1 = plt.subplots()
                 ax1.plot(bt.index, bt["Close"], label="Close", linewidth=1.2)
                 ax1.plot(bt.index, bt["MA_Short"], label=f"{ma_type} {short_win}", linewidth=1.1)
                 ax1.plot(bt.index, bt["MA_Long"], label=f"{ma_type} {long_win}", linewidth=1.1)
+
+                # Add signal marker (optional visual highlight)
+                last_price = bt["Close"].iloc[-1]
+                if latest_signal == 1:
+                    ax1.scatter(bt.index[-1], last_price, color="green", s=100, label="Buy Signal")
+                elif latest_signal == -1:
+                    ax1.scatter(bt.index[-1], last_price, color="red", s=100, label="Sell Signal")
+                else:
+                    ax1.scatter(bt.index[-1], last_price, color="gray", s=100, label="Hold")
                 ax1.set_title(f"{t} Price with {ma_type}s")
                 ax1.legend()
                 st.pyplot(fig1)
 
+                # --- Chart 2: Cumulative Returns ---
                 fig2, ax2 = plt.subplots()
                 ax2.plot(bt.index, bt["CumStock"], label="Buy & Hold")
                 ax2.plot(bt.index, bt["CumStrat"], label="Strategy")
@@ -277,6 +295,7 @@ if st.sidebar.button("Run Backtest"):
                 ax2.legend()
                 st.pyplot(fig2)
 
+                # --- Data Table + Download CSV ---
                 st.dataframe(bt[[
                     "Close", "MA_Short", "MA_Long", "Signal",
                     "Position", "Return", "StratRet", "CumStock", "CumStrat"
