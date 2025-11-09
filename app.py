@@ -66,31 +66,62 @@ else:
     st.markdown("""
         <style>
             .stApp {
-                background-color: #f8f9fa;
-                color: #111827;
+                background-color: #f4f6f8;
+                color: #1e293b;
+                font-family: "Inter", sans-serif;
             }
             section[data-testid="stSidebar"] {
                 background-color: #ffffff;
-                color: #111827;
+                color: #1e293b;
+                border-right: 1px solid #e2e8f0;
             }
             h1 {
-                color: #0077b6 !important;
+                color: #005f99 !important;
                 text-align: center;
+                font-weight: 650;
+                letter-spacing: 0.5px;
+                margin-bottom: 1rem;
+            }
+            div[data-testid="stMetricValue"] {
+                color: #0077b6 !important;
                 font-weight: 600;
             }
-            div[data-testid="stMetricValue"] { color: #0077b6 !important; }
             button[kind="primary"] {
                 background-color: #0077b6 !important;
                 color: white !important;
                 border-radius: 6px;
+                font-weight: 500;
+                border: none;
+                box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+                transition: all 0.3s ease;
+            }
+            button[kind="primary"]:hover {
+                background-color: #005f99 !important;
+                transform: translateY(-1px);
             }
             div[data-testid="stDataFrame"] {
-                background-color: #f1f5f9;
-                border-radius: 8px;
-                color: black;
+                background-color: #ffffff;
+                border-radius: 10px;
+                border: 1px solid #e2e8f0;
+                color: #1e293b;
+            }
+            .stTabs [role="tablist"] {
+                gap: 8px;
+            }
+            .stTabs [role="tab"] {
+                background-color: #e7eef4;
+                border-radius: 6px;
+                padding: 6px 14px;
+                color: #1e293b;
+                font-weight: 500;
+            }
+            .stTabs [role="tab"][aria-selected="true"] {
+                background-color: #0077b6;
+                color: white;
             }
         </style>
     """, unsafe_allow_html=True)
+
 
 # -------------------------------------------------
 # Title
