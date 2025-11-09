@@ -10,7 +10,7 @@ from datetime import date, timedelta
 # -------------------------------------------------
 st.set_page_config(page_title="Trading Strategy Dashboard", layout="wide")
 
-# --- Remove Streamlit branding and link icons ---
+# --- Hide Streamlit Branding ---
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -23,38 +23,42 @@ st.markdown("""
 # -------------------------------------------------
 # Sidebar Inputs
 # -------------------------------------------------
-st.sidebar.header("Inputs")
+st.sidebar.header("Dashboard Settings")
 
-# --- Theme Toggle ---
+# Theme toggle
 theme_choice = st.sidebar.radio(
-    "Choose Theme",
-    ["Dark Mode 🌙", "Light Mode ☀️"],
+    "Appearance",
+    ["Dark Mode", "Light Mode"],
     index=0
 )
 
 # --- Dynamic Theme Styling ---
-if theme_choice == "Dark Mode 🌙":
+if theme_choice == "Dark Mode":
     st.markdown("""
         <style>
             .stApp {
-                background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-                color: #f8f9fa;
+                background-color: #0e1117;
+                color: #fafafa;
             }
             section[data-testid="stSidebar"] {
-                background-color: #111827;
-                color: #f8f9fa;
+                background-color: #1c1f26;
+                color: #fafafa;
             }
-            h1 { color: #00b4d8 !important; text-align: center; }
-            div[data-testid="stMetricValue"] { color: #38bdf8 !important; }
+            h1 {
+                color: #00b4d8 !important;
+                text-align: center;
+                font-weight: 600;
+            }
+            div[data-testid="stMetricValue"] { color: #00b4d8 !important; }
             button[kind="primary"] {
                 background-color: #00b4d8 !important;
                 color: white !important;
-                border-radius: 8px;
+                border-radius: 6px;
             }
             div[data-testid="stDataFrame"] {
-                background-color: #1e293b;
+                background-color: #1f2937;
                 border-radius: 8px;
-                color: white;
+                color: #fafafa;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -62,19 +66,23 @@ else:
     st.markdown("""
         <style>
             .stApp {
-                background: linear-gradient(135deg, #f8f9fa, #e0f7fa);
-                color: #0f172a;
+                background-color: #f8f9fa;
+                color: #111827;
             }
             section[data-testid="stSidebar"] {
                 background-color: #ffffff;
-                color: #0f172a;
+                color: #111827;
             }
-            h1 { color: #0077b6 !important; text-align: center; }
+            h1 {
+                color: #0077b6 !important;
+                text-align: center;
+                font-weight: 600;
+            }
             div[data-testid="stMetricValue"] { color: #0077b6 !important; }
             button[kind="primary"] {
                 background-color: #0077b6 !important;
                 color: white !important;
-                border-radius: 8px;
+                border-radius: 6px;
             }
             div[data-testid="stDataFrame"] {
                 background-color: #f1f5f9;
@@ -87,27 +95,27 @@ else:
 # -------------------------------------------------
 # Title
 # -------------------------------------------------
-st.title("💹 Trading Strategy Dashboard")
+st.title("Trading Strategy Dashboard")
 
 # -------------------------------------------------
 # Sidebar Configuration
 # -------------------------------------------------
 default_tickers = ["TCS.NS", "INFY.NS", "RELIANCE.NS", "HDFCBANK.NS"]
-tickers = st.sidebar.multiselect("Select tickers", default_tickers, default=default_tickers[:2])
+tickers = st.sidebar.multiselect("Select Stocks", default_tickers, default=default_tickers[:2])
 
 end_date = date.today()
 start_date = end_date - timedelta(days=90)
-start = st.sidebar.date_input("Start date", start_date)
-end = st.sidebar.date_input("End date", end_date)
+start = st.sidebar.date_input("Start Date", start_date)
+end = st.sidebar.date_input("End Date", end_date)
 
-short_win = st.sidebar.number_input("Short SMA window", min_value=3, max_value=50, value=10, step=1)
-long_win = st.sidebar.number_input("Long SMA window", min_value=10, max_value=200, value=30, step=1)
-tx_cost_bps = st.sidebar.number_input("Transaction cost (bps per trade)", min_value=0, max_value=100, value=5, step=1)
+short_win = st.sidebar.number_input("Short SMA Window", min_value=3, max_value=50, value=10, step=1)
+long_win = st.sidebar.number_input("Long SMA Window", min_value=10, max_value=200, value=30, step=1)
+tx_cost_bps = st.sidebar.number_input("Transaction Cost (bps per trade)", min_value=0, max_value=100, value=5, step=1)
 
 take_profit = st.sidebar.number_input("Take Profit (%)", min_value=0.0, max_value=50.0, value=5.0, step=0.5)
 stop_loss = st.sidebar.number_input("Stop Loss (%)", min_value=0.0, max_value=50.0, value=3.0, step=0.5)
 
-st.sidebar.caption("Tips: NSE tickers on Yahoo Finance end with .NS (e.g., TCS.NS)")
+st.sidebar.caption("Tip: Use Yahoo tickers ending with .NS for NSE stocks (e.g., TCS.NS)")
 
 # -------------------------------------------------
 # Fetch Prices (Cached)
@@ -148,7 +156,6 @@ def backtest(df, tx_cost_bps=5, take_profit=0.05, stop_loss=-0.03):
     for i in range(1, len(df)):
         short_val = df["SMA_Short"].iloc[i]
         long_val = df["SMA_Long"].iloc[i]
-
         if pd.isna(short_val) or pd.isna(long_val):
             continue
 
@@ -230,7 +237,7 @@ if st.sidebar.button("Run Backtest"):
                 # Download CSV Button
                 csv_data = bt.to_csv(index=True).encode("utf-8")
                 st.download_button(
-                    label=f"📥 Download {t} Backtest Data as CSV",
+                    label=f"Download {t} Data (CSV)",
                     data=csv_data,
                     file_name=f"{t}_backtest_results.csv",
                     mime="text/csv"
