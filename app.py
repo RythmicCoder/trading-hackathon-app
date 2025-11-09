@@ -6,64 +6,92 @@ import matplotlib.pyplot as plt
 from datetime import date, timedelta
 
 # -------------------------------------------------
-# Page Setup and Custom Theme
+# Streamlit Page Setup
 # -------------------------------------------------
 st.set_page_config(page_title="Trading Strategy Dashboard", layout="wide")
 
-# --- Inject Custom CSS for Styling ---
+# --- Remove Streamlit branding and link icons ---
 st.markdown("""
     <style>
-        /* Background gradient */
-        .stApp {
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            color: #f8f9fa;
-        }
-
-        /* Sidebar styling */
-        section[data-testid="stSidebar"] {
-            background-color: #111827;
-            color: #f8f9fa;
-        }
-
-        /* Title */
-        h1 {
-            color: #00b4d8 !important;
-            text-align: center;
-        }
-
-        /* Metric cards */
-        div[data-testid="stMetricValue"] {
-            color: #38bdf8 !important;
-        }
-
-        /* Buttons */
-        button[kind="primary"] {
-            background-color: #00b4d8 !important;
-            color: white !important;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        button[kind="primary"]:hover {
-            background-color: #0077b6 !important;
-            color: #fff !important;
-        }
-
-        /* DataFrame table */
-        div[data-testid="stDataFrame"] {
-            background-color: #1e293b;
-            border-radius: 8px;
-            color: white;
-        }
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header[data-testid="stHeader"] {visibility: hidden;}
+        div[data-testid="stToolbar"] {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
-
-st.title("💹 Trading Strategy Dashboard")
 
 # -------------------------------------------------
 # Sidebar Inputs
 # -------------------------------------------------
 st.sidebar.header("Inputs")
 
+# --- Theme Toggle ---
+theme_choice = st.sidebar.radio(
+    "Choose Theme",
+    ["Dark Mode 🌙", "Light Mode ☀️"],
+    index=0
+)
+
+# --- Dynamic Theme Styling ---
+if theme_choice == "Dark Mode 🌙":
+    st.markdown("""
+        <style>
+            .stApp {
+                background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+                color: #f8f9fa;
+            }
+            section[data-testid="stSidebar"] {
+                background-color: #111827;
+                color: #f8f9fa;
+            }
+            h1 { color: #00b4d8 !important; text-align: center; }
+            div[data-testid="stMetricValue"] { color: #38bdf8 !important; }
+            button[kind="primary"] {
+                background-color: #00b4d8 !important;
+                color: white !important;
+                border-radius: 8px;
+            }
+            div[data-testid="stDataFrame"] {
+                background-color: #1e293b;
+                border-radius: 8px;
+                color: white;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+        <style>
+            .stApp {
+                background: linear-gradient(135deg, #f8f9fa, #e0f7fa);
+                color: #0f172a;
+            }
+            section[data-testid="stSidebar"] {
+                background-color: #ffffff;
+                color: #0f172a;
+            }
+            h1 { color: #0077b6 !important; text-align: center; }
+            div[data-testid="stMetricValue"] { color: #0077b6 !important; }
+            button[kind="primary"] {
+                background-color: #0077b6 !important;
+                color: white !important;
+                border-radius: 8px;
+            }
+            div[data-testid="stDataFrame"] {
+                background-color: #f1f5f9;
+                border-radius: 8px;
+                color: black;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+# -------------------------------------------------
+# Title
+# -------------------------------------------------
+st.title("💹 Trading Strategy Dashboard")
+
+# -------------------------------------------------
+# Sidebar Configuration
+# -------------------------------------------------
 default_tickers = ["TCS.NS", "INFY.NS", "RELIANCE.NS", "HDFCBANK.NS"]
 tickers = st.sidebar.multiselect("Select tickers", default_tickers, default=default_tickers[:2])
 
