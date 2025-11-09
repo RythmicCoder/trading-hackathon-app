@@ -1,35 +1,63 @@
-# Trading Hackathon Starter
+# Trading Strategy Dashboard — Moving Average Crossover
 
-## Quick start
-1) Create and activate a virtual environment
-   - Windows (PowerShell):
-     ```powershell
-     python -m venv .venv
-     .venv\Scripts\Activate.ps1
-     ```
-   - macOS/Linux (bash/zsh):
-     ```bash
-     python3 -m venv .venv
-     source .venv/bin/activate
-     ```
+An interactive **Streamlit dashboard** that visualizes **Moving Average (MA) crossover trading strategies** on real NSE stock data.
+This project was developed as part of the **Trading Hackathon 2025** to analyze stock trends and generate **Buy / Sell / Hold** signals using end-of-day market prices.
 
-2) Install packages
+---
+
+##  Quick Start
+
+### 1. Download or Clone the Repository
 ```bash
+git clone https://github.com/RythmicCoder/trading-hackathon-app.git
+cd trading-hackathon-app
+
+2. Create a Virtual Environment (optional but recommended)
+Windows:
+python -m venv .venv
+.venv\Scripts\activate
+
+3. Install Dependencies
 pip install -r requirements.txt
-```
 
-3) Run the app
-```bash
+4. Run the Application
 streamlit run app.py
-```
 
-## What this does
-- Lets you pick an NSE ticker (e.g., TCS.NS, INFY.NS, RELIANCE.NS).
-- Pulls end-of-day data with `yfinance`.
-- Builds a simple SMA crossover signal.
-- Backtests the last 3 months by default.
-- Shows charts and a profit summary.
+After running, the app will open automatically in your browser at:
 
-## Notes
-- For NSE stocks on Yahoo Finance, use the `.NS` suffix (e.g., "TCS.NS").
-- This is a template; replace the strategy logic with what the problem statement needs.
+http://localhost:8501
+
+You can also use the Network URL (displayed in the terminal) to view the dashboard on another device connected to the same Wi-Fi network.
+If hosted publicly on Streamlit Cloud, it can be accessed directly from a link like:https://trading-hackathon-app-ynwuo8hqggmxmy9w5zs38k.streamlit.app/
+Data Source
+
+The project uses the Yahoo Finance API through the yfinance Python package to fetch end-of-day (EOD) closing prices for NSE-listed stocks.
+All data is publicly available and retrieved securely through the yf.download() method.
+
+How It Works
+
+Fetch Data:
+Retrieves historical EOD data for selected stocks.
+
+Calculate Moving Averages:
+Computes short-term and long-term averages (SMA, EMA, or WMA).
+
+Generate Signals:
+
+BUY → Short-term MA crosses above long-term MA.
+
+SELL → Short-term MA crosses below long-term MA.
+
+HOLD → No crossover.
+
+Backtest Strategy:
+Simulates trades using your chosen parameters, applying transaction costs and stop-loss / take-profit logic.
+
+Visualize Results:
+Displays two charts — price vs. moving averages and cumulative returns — plus key performance metrics.
+
+trading-hackathon-app/
+│
+├── app.py                # Main Streamlit app
+├── requirements.txt      # Dependencies
+├── README.md             # Documentation
